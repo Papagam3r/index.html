@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kart Timer">
+<title>Kart Timer</title>
+<style>
+:root{
+  --bg:#0d0f12; --panel:#161a1f; --line:#262c34; --fg:#f1f3f5; --mute:#8d97a4;
+  --accent:#ffb020; --good:#3ddc84; --bad:#ff6161; --on-accent:#14110a;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){
+  :root{--bg:#f3f4f6;--panel:#ffffff;--line:#dde1e6;--fg:#14171a;--mute:#5f6b78;
+    --accent:#c77700;--good:#0f8a46;--bad:#c22f2f;--on-accent:#ffffff;color-scheme:light}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:16px/1.4 var(--sans);
+  padding-block:8px 28px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-text-size-adjust:100%}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.brand{font-weight:800;letter-spacing:.02em;font-size:1.05rem}
+nav{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav button{border:0;background:transparent;color:var(--mute);font:inherit;font-weight:600;padding:8px 14px;border-radius:8px;cursor:pointer}
+nav button.on{background:var(--accent);color:var(--on-accent)}
+.chip{margin-left:auto;font:600 .8rem var(--mono);color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:5px 10px}
+.chip.ok{color:var(--good);border-color:var(--good)}
+.chip.warn{color:var(--accent);border-color:var(--accent)}
+main{max-width:760px;margin:0 auto}
+.label{display:block;font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.timer{font:800 clamp(2.9rem,17vw,5.8rem)/1.05 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin:4px 0 10px;white-space:nowrap}
+.row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.row3 b{display:block;font:700 1.25rem var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.good{color:var(--good)} .bad{color:var(--bad)}
+.delta{min-height:1.4em;margin-top:8px;font:700 1rem var(--mono)}
+.msg{color:var(--mute);font-size:.92rem;margin:10px 2px;min-height:1.3em}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+button.b,label.b{flex:1 1 140px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font:inherit;font-weight:700;padding:14px 12px;border-radius:12px;cursor:pointer;text-align:center}
+button.b.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+button.b.stop{background:var(--bad);border-color:var(--bad);color:#fff}
+button.b:disabled{opacity:.45;cursor:default}
+button.b:focus-visible,nav button:focus-visible,input:focus-visible,summary:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.toggle{display:flex;align-items:center;justify-content:center;gap:8px;flex:0 1 auto!important}
+details{margin:8px 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+summary{cursor:pointer;font-weight:600}
+.set{display:grid;grid-template-columns:1fr auto;gap:10px 14px;align-items:center;margin-top:10px}
+.set input{width:90px;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+.laps{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+.laps li{display:grid;grid-template-columns:3.2rem 1fr auto auto;gap:10px;align-items:baseline;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-variant-numeric:tabular-nums}
+.laps .t{font:700 1.1rem var(--mono)}
+.laps .d,.laps .v{font:.85rem var(--mono);color:var(--mute)}
+.laps li.best .t{color:var(--good)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:12px 0}
+.stats b{display:block;font:800 1.4rem var(--mono);font-variant-numeric:tabular-nums}
+select{width:100%;font:inherit;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--fg)}
+.chartbox{margin-top:12px;overflow-x:auto}
+svg.chart{display:block;width:100%;min-width:300px;height:auto}
+svg .grid{stroke:var(--line);stroke-width:1}
+svg .ln{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round}
+svg .pt{fill:var(--accent)} svg .pt.best{fill:var(--good)}
+svg text{fill:var(--mute);font:11px var(--mono)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.92rem}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}
+th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.tw{overflow-x:auto}
+.note{color:var(--mute);font-size:.85rem}
+@media (prefers-reduced-motion:no-preference){button.b{transition:filter .12s}button.b:active{filter:brightness(.85)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Kart Timer</div>
+  <nav aria-label="Secciones">
+    <button id="tabPista" class="on" type="button">Pista</button>
+    <button id="tabSes" type="button">Sesiones</button>
+  </nav>
+  <div id="gps" class="chip">GPS --</div>
+</header>
+
+<main>
+<section id="pista">
+  <div class="card">
+    <span class="label" id="lapLabel">Vuelta</span>
+    <div id="timer" class="timer">--:--.---</div>
+    <div class="row3">
+      <div><span class="label">Última</span><b id="last">--</b></div>
+      <div><span class="label">Mejor</span><b id="best" class="good">--</b></div>
+      <div><span class="label">km/h</span><b id="spd">0</b></div>
+    </div>
+    <div id="delta" class="delta"></div>
+  </div>
+  <p id="msg" class="msg">Pulsa Iniciar y permite la ubicación.</p>
+  <div class="btns">
+    <button id="bStart" class="b primary" type="button">Iniciar</button>
+    <button id="bMark" class="b" type="button" disabled>Marcar meta aquí</button>
+  </div>
+  <div class="btns">
+    <button id="bNew" class="b" type="button">Nueva sesión</button>
+    <label class="b toggle"><input type="checkbox" id="voice"> Voz</label>
+  </div>
+  <details>
+    <summary>Ajustes</summary>
+    <div class="set">
+      <label for="minLap">Vuelta mínima válida (s)</label><input id="minLap" type="number" min="5" max="600" value="15" inputmode="numeric">
+      <label for="half">Mitad del ancho de la pista (m)</label><input id="half" type="number" min="5" max="100" value="20" inputmode="numeric">
+    </div>
+    <p class="note">La meta se guarda en este dispositivo. Para pasar a otra pista, vuelve a marcarla.</p>
+  </details>
+  <ol id="lapList" class="laps"></ol>
+</section>
+
+<section id="sesiones" hidden>
+  <div class="card">
+    <label class="label" for="sesSel">Sesión</label>
+    <select id="sesSel"></select>
+    <div class="stats">
+      <div><span class="label">Vueltas</span><b id="sCount">0</b></div>
+      <div><span class="label">Mejor</span><b id="sBest" class="good">--</b></div>
+      <div><span class="label">Promedio</span><b id="sAvg">--</b></div>
+      <div><span class="label">Constancia</span><b id="sStd">--</b></div>
+    </div>
+    <div class="chartbox"><svg id="chart" class="chart" role="img" aria-label="Tiempo por vuelta"></svg></div>
+  </div>
+  <div class="btns">
+    <button id="bShare" class="b primary" type="button">Compartir / AirDrop</button>
+    <button id="bCsv" class="b" type="button">Descargar CSV</button>
+  </div>
+  <div class="btns">
+    <label class="b" for="fileIn">Importar sesión (.json)</label>
+    <input id="fileIn" type="file" accept=".json,application/json" hidden>
+    <button id="bDel" class="b" type="button">Borrar esta sesión</button>
+  </div>
+  <p id="sMsg" class="msg"></p>
+  <div class="card tw"><table><thead><tr><th>Vuelta</th><th>Tiempo</th><th>vs mejor</th><th>km/h máx</th></tr></thead><tbody id="sRows"></tbody></table></div>
+  <div class="card" style="margin-top:12px"><span class="label">Comparar sesiones</span>
+    <div class="tw"><table><thead><tr><th>Sesión</th><th>Vueltas</th><th>Mejor</th><th>Promedio</th></tr></thead><tbody id="cmpRows"></tbody></table></div></div>
+</section>
+</main>
+
+<script>
+/*ENGINE*/
+const R_LAT = 111132, R_LON = 111320;
+// Detecta el cruce de la meta entre dos fixes GPS seguidos y calcula el instante
+// exacto del cruce por interpolación lineal (precisión sub-segundo con GPS de ~1 Hz).
+function createEngine(){
+  let line = null, prev = null;
+  return {
+    setLine(l){ line = l; prev = null; },
+    reset(){ prev = null; },
+    process(p, maxAcc = 25){
+      if (!line || p.acc < 0 || p.acc > maxAcc) return null;
+      const kx = R_LON * Math.cos(line.lat * Math.PI / 180);
+      const x = (p.lon - line.lon) * kx, y = (p.lat - line.lat) * R_LAT;
+      const p0 = prev; prev = {x, y, t: p.t};
+      if (!p0) return null;
+      const h = line.heading * Math.PI / 180, dx = Math.sin(h), dy = Math.cos(h);
+      const s0 = p0.x * dx + p0.y * dy, s1 = x * dx + y * dy;
+      if (!(s0 < 0 && s1 >= 0)) return null;               // cruce hacia adelante
+      const f = -s0 / (s1 - s0);
+      const cx = p0.x + f * (x - p0.x), cy = p0.y + f * (y - p0.y);
+      if (Math.abs(cx * dy - cy * dx) > line.half) return null; // fuera del ancho de pista
+      const dt = p.t - p0.t;
+      if (dt <= 0 || dt > 5000) return null;                // huecos largos de GPS
+      return { t: p0.t + f * dt };
+    }
+  };
+}
+function bearing(a, b){
+  const dy = (b.lat - a.lat) * R_LAT;
+  const dx = (b.lon - a.lon) * R_LON * Math.cos(a.lat * Math.PI / 180);
+  return (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+}
+function distM(a, b){
+  const dy = (b.lat - a.lat) * R_LAT;
+  const dx = (b.lon - a.lon) * R_LON * Math.cos(a.lat * Math.PI / 180);
+  return Math.hypot(dx, dy);
+}
+/*END*/
+
+const $ = id => document.getElementById(id);
+const KEY = 'kartTimer.v1';
+const engine = createEngine();
+const S = { line:null, sessions:[], cur:null, running:false, watch:null, lastFix:null, prevFix:null,
+            lapStart:null, top:0, wake:null, viewId:null };
+
+function fmt(s){
+  if (!isFinite(s) || s < 0) return '--:--.---';
+  const t = Math.round(s * 1000), m = Math.floor(t / 60000), sec = Math.floor(t % 60000 / 1000), ms = t % 1000;
+  return m + ':' + String(sec).padStart(2,'0') + '.' + String(ms).padStart(3,'0');
+}
+const sign = d => (d >= 0 ? '+' : '-') + Math.abs(d).toFixed(3);
+function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function stamp(d){ const p = n => String(n).padStart(2,'0'); return p(d.getDate())+'/'+p(d.getMonth()+1)+' '+p(d.getHours())+':'+p(d.getMinutes()); }
+
+function save(){ try { localStorage.setItem(KEY, JSON.stringify({ line:S.line, sessions:S.sessions, minLap:+$('minLap').value, half:+$('half').value, voice:$('voice').checked })); } catch(e){} }
+function load(){
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (d){
+      S.sessions = Array.isArray(d.sessions) ? d.sessions : [];
+      if (d.line){ S.line = d.line; engine.setLine(d.line); }
+      if (d.minLap) $('minLap').value = d.minLap;
+      if (d.half) $('half').value = d.half;
+      $('voice').checked = !!d.voice;
+    }
+  } catch(e){}
+  if (!S.sessions.length) newSession();
+  S.cur = S.sessions[S.sessions.length - 1];
+}
+function newSession(){
+  const s = { id:uid(), name:'Sesión ' + stamp(new Date()), startedAt:Date.now(), laps:[] };
+  S.sessions.push(s); S.cur = s; S.lapStart = null; S.top = 0; S.viewId = s.id;
+  save(); renderPista(); renderSes();
+}
+
+// ---------- GPS ----------
+function setChip(text, cls){ const c = $('gps'); c.textContent = text; c.className = 'chip' + (cls ? ' ' + cls : ''); }
+function msg(t){ $('msg').textContent = t; }
+
+async function takeWake(){ try { if ('wakeLock' in navigator) S.wake = await navigator.wakeLock.request('screen'); } catch(e){} }
+document.addEventListener('visibilitychange', () => { if (S.running && document.visibilityState === 'visible') takeWake(); });
+
+function start(){
+  if (!('geolocation' in navigator)){ msg('Este navegador no tiene GPS.'); return; }
+  if (!window.isSecureContext){ msg('Abre la página con https:// para usar el GPS.'); return; }
+  engine.setLine(S.line);
+  S.running = true; S.lapStart = null;
+  S.watch = navigator.geolocation.watchPosition(onPos, onErr, { enableHighAccuracy:true, maximumAge:0, timeout:15000 });
+  takeWake();
+  $('bStart').textContent = 'Detener'; $('bStart').className = 'b stop'; $('bMark').disabled = false;
+  msg(S.line ? 'Listo: cruza la meta para empezar la vuelta 1.' : 'Rueda y pulsa «Marcar meta aquí» al pasar por la línea.');
+}
+function stop(){
+  S.running = false;
+  if (S.watch != null) navigator.geolocation.clearWatch(S.watch);
+  S.watch = null; S.lapStart = null;
+  try { if (S.wake) S.wake.release(); } catch(e){}
+  $('bStart').textContent = 'Iniciar'; $('bStart').className = 'b primary'; $('bMark').disabled = true;
+  setChip('GPS --'); msg('Detenido.'); save(); renderPista();
+}
+function onErr(e){
+  msg(e.code === 1 ? 'Permiso de ubicación denegado. Actívalo en Ajustes > Safari > Ubicación.' : 'Error de GPS: ' + e.message);
+  setChip('GPS error', 'warn');
+}
+function onPos(pos){
+  const c = pos.coords;
+  const p = { lat:c.latitude, lon:c.longitude, t:pos.timestamp, acc:c.accuracy,
+              speed:(c.speed == null || c.speed < 0) ? 0 : c.speed, heading:c.heading };
+  S.prevFix = S.lastFix; S.lastFix = p;
+  setChip('GPS ±' + Math.round(p.acc) + ' m', p.acc <= 10 ? 'ok' : 'warn');
+  $('spd').textContent = Math.round(p.speed * 3.6);
+  if (!S.running) return;
+  if (S.lapStart != null) S.top = Math.max(S.top, p.speed * 3.6);
+  const x = engine.process(p);
+  if (x) onCross(x);
+}
+function onCross(x){
+  if (S.lapStart != null){
+    const secs = (x.t - S.lapStart) / 1000;
+    if (secs < (+$('minLap').value || 15)) return;      // cruce duplicado
+    const prevBest = bestOf(S.cur.laps);
+    const lap = { n:S.cur.laps.length + 1, s:secs, at:x.t, top:S.top };
+    S.cur.laps.push(lap); save();
+    const d = prevBest == null ? null : secs - prevBest;
+    $('delta').textContent = d == null ? 'Primera vuelta' : sign(d) + ' vs mejor';
+    $('delta').className = 'delta ' + (d != null && d < 0 ? 'good' : d != null && d > 0 ? 'bad' : '');
+    msg('Vuelta ' + lap.n + ': ' + fmt(secs));
+    speak(lap, d);
+    renderPista(); renderSes();
+  } else {
+    msg('¡Vuelta 1 en marcha!');
+  }
+  S.lapStart = x.t; S.top = 0;
+}
+function markLine(){
+  const f = S.lastFix;
+  if (!f){ msg('Aún no hay señal GPS.'); return; }
+  let h = null;
+  if (f.heading != null && !isNaN(f.heading) && f.speed > 2) h = f.heading;
+  else if (S.prevFix && distM(S.prevFix, f) > 3) h = bearing(S.prevFix, f);
+  if (h == null || f.speed < 2){ msg('Muévete a más de 8 km/h y vuelve a pulsar.'); return; }
+  S.line = { lat:f.lat, lon:f.lon, heading:h, half:+$('half').value || 20 };
+  engine.setLine(S.line); S.lapStart = null; save();
+  msg('Meta guardada. Cruza de nuevo para iniciar la vuelta 1.');
+}
+function speak(lap, d){
+  if (!$('voice').checked || !('speechSynthesis' in window)) return;
+  const m = Math.floor(lap.s / 60), s = (lap.s % 60).toFixed(1).replace('.', ' punto ');
+  const text = 'Vuelta ' + lap.n + ', ' + (m ? m + ' minuto ' : '') + s + ' segundos' +
+               (d != null && d < 0 ? '. Mejor vuelta' : '');
+  const u = new SpeechSynthesisUtterance(text); u.lang = 'es-ES'; speechSynthesis.speak(u);
+}
+
+// ---------- estadísticas y render ----------
+const bestOf = laps => laps.length ? Math.min(...laps.map(l => l.s)) : null;
+const avgOf = laps => laps.length ? laps.reduce((a, l) => a + l.s, 0) / laps.length : null;
+function stdOf(laps){
+  if (laps.length < 2) return null;
+  const a = avgOf(laps); return Math.sqrt(laps.reduce((s, l) => s + (l.s - a) ** 2, 0) / laps.length);
+}
+
+function renderPista(){
+  const laps = S.cur ? S.cur.laps : [], best = bestOf(laps);
+  $('last').textContent = laps.length ? fmt(laps[laps.length - 1].s) : '--';
+  $('best').textContent = best == null ? '--' : fmt(best);
+  $('lapLabel').textContent = S.lapStart != null ? 'Vuelta ' + (laps.length + 1) : 'Vuelta';
+  const ol = $('lapList'); ol.textContent = '';
+  for (const l of laps.slice().reverse()){
+    const li = el('li', l.s === best ? 'best' : '');
+    li.append(el('span', null, 'V' + l.n), el('span', 't', fmt(l.s)),
+              el('span', 'd', best != null && l.s !== best ? sign(l.s - best) : ''),
+              el('span', 'v', Math.round(l.top) + ' km/h'));
+    ol.append(li);
+  }
+}
+function tick(){
+  if (S.running && S.lapStart != null){
+    $('timer').textContent = fmt((Date.now() - S.lapStart) / 1000);
+    $('lapLabel').textContent = 'Vuelta ' + (S.cur.laps.length + 1);
+  } else if (!S.running) { $('timer').textContent = '--:--.---'; }
+  requestAnimationFrame(tick);
+}
+
+function viewSession(){ return S.sessions.find(s => s.id === S.viewId) || S.cur; }
+function renderSes(){
+  const sel = $('sesSel'); sel.textContent = '';
+  for (const s of S.sessions.slice().reverse()){
+    const o = el('option', null, s.name + ' · ' + s.laps.length + ' vueltas'); o.value = s.id; sel.append(o);
+  }
+  const v = viewSession(); if (!v) return;
+  sel.value = v.id;
+  const best = bestOf(v.laps), avg = avgOf(v.laps), sd = stdOf(v.laps);
+  $('sCount').textContent = v.laps.length;
+  $('sBest').textContent = best == null ? '--' : fmt(best);
+  $('sAvg').textContent = avg == null ? '--' : fmt(avg);
+  $('sStd').textContent = sd == null ? '--' : '±' + sd.toFixed(3);
+  const tb = $('sRows'); tb.textContent = '';
+  for (const l of v.laps){
+    const tr = el('tr'); const isBest = l.s === best;
+    const t = el('td', isBest ? 'good' : '', fmt(l.s));
+    tr.append(el('td', null, 'V' + l.n), t, el('td', null, isBest ? 'mejor' : sign(l.s - best)), el('td', null, String(Math.round(l.top))));
+    tb.append(tr);
+  }
+  const cb = $('cmpRows'); cb.textContent = '';
+  for (const s of S.sessions.slice().reverse()){
+    const tr = el('tr'); const b = bestOf(s.laps), a = avgOf(s.laps);
+    tr.append(el('td', null, s.name), el('td', null, String(s.laps.length)), el('td', null, b == null ? '--' : fmt(b)), el('td', null, a == null ? '--' : fmt(a)));
+    cb.append(tr);
+  }
+  drawChart(v.laps);
+}
+
+function drawChart(laps){
+  const svg = $('chart'), NS = 'http://www.w3.org/2000/svg';
+  svg.textContent = '';
+  const W = 640, H = 220, L = 52, R = 14, T = 12, B = 26;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  const add = (n, a, txt) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (txt != null) e.textContent = txt; svg.append(e); return e; };
+  if (!laps.length){ add('text', { x:W/2, y:H/2, 'text-anchor':'middle' }, 'Sin vueltas todavía'); return; }
+  const ts = laps.map(l => l.s);
+  let lo = Math.min(...ts), hi = Math.max(...ts);
+  if (hi - lo < 1){ lo -= .5; hi += .5; }
+  const pad = (hi - lo) * .15; lo -= pad; hi += pad;
+  const X = i => L + (laps.length === 1 ? (W - L - R) / 2 : i * (W - L - R) / (laps.length - 1));
+  const Y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+  for (let k = 0; k <= 3; k++){
+    const v = lo + (hi - lo) * k / 3, y = Y(v);
+    add('line', { class:'grid', x1:L, x2:W - R, y1:y, y2:y });
+    add('text', { x:L - 6, y:y + 4, 'text-anchor':'end' }, fmt(v).slice(0, -2));
+  }
+  add('polyline', { class:'ln', points: laps.map((l, i) => X(i).toFixed(1) + ',' + Y(l.s).toFixed(1)).join(' ') });
+  const best = Math.min(...ts);
+  laps.forEach((l, i) => {
+    add('circle', { class:'pt' + (l.s === best ? ' best' : ''), cx:X(i), cy:Y(l.s), r: l.s === best ? 5 : 3.5 });
+    if (laps.length <= 20 || i % Math.ceil(laps.length / 20) === 0) add('text', { x:X(i), y:H - 8, 'text-anchor':'middle' }, String(l.n));
+  });
+}
+
+// ---------- exportar / importar ----------
+function fileStamp(s){ return new Date(s.startedAt).toISOString().slice(0, 16).replace(/[-:T]/g, ''); }
+async function shareFile(name, text, type){
+  const file = new File([text], name, { type });
+  try {
+    if (navigator.canShare && navigator.canShare({ files:[file] })){ await navigator.share({ files:[file] }); return true; }
+  } catch(e){ if (e && e.name === 'AbortError') return true; }
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = el('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return false;
+}
+function csvOf(s){
+  return 'vuelta,tiempo_s,tiempo,vel_max_kmh\n' + s.laps.map(l => l.n + ',' + l.s.toFixed(3) + ',' + fmt(l.s) + ',' + l.top.toFixed(1)).join('\n') + '\n';
+}
+function importData(text){
+  let d; try { d = JSON.parse(text); } catch(e){ return 'El archivo no es un JSON válido.'; }
+  if (!d || !Array.isArray(d.laps)) return 'El archivo no tiene vueltas.';
+  const laps = d.laps.map((l, i) => ({ n:i + 1, s:Number(l.s), at:Number(l.at) || 0, top:Number(l.top) || 0 })).filter(l => isFinite(l.s) && l.s > 0);
+  if (!laps.length) return 'El archivo no tiene vueltas válidas.';
+  const name = String(d.name || 'Sesión importada').slice(0, 60);
+  const id = typeof d.id === 'string' && /^[a-z0-9]{4,24}$/i.test(d.id) ? d.id : uid();
+  const ex = S.sessions.find(s => s.id === id);
+  if (ex){ ex.laps = laps; ex.name = name; S.viewId = ex.id; }
+  else { const s = { id, name, startedAt:Number(d.startedAt) || Date.now(), laps }; S.sessions.push(s); S.viewId = s.id; }
+  save(); renderSes(); renderPista();
+  return 'Importada: ' + name + ' (' + laps.length + ' vueltas).';
+}
+
+// ---------- eventos ----------
+function tab(which){
+  const p = which === 'p'; $('pista').hidden = !p; $('sesiones').hidden = p;
+  $('tabPista').classList.toggle('on', p); $('tabSes').classList.toggle('on', !p);
+  if (!p){ S.viewId = S.viewId || (S.cur && S.cur.id); renderSes(); }
+}
+$('tabPista').onclick = () => tab('p');
+$('tabSes').onclick = () => tab('s');
+$('bStart').onclick = () => S.running ? stop() : start();
+$('bMark').onclick = markLine;
+$('bNew').onclick = () => { if (S.cur.laps.length === 0 || confirmNew()) newSession(); };
+function confirmNew(){ return true; } // la sesión anterior queda guardada en «Sesiones»
+$('sesSel').onchange = e => { S.viewId = e.target.value; renderSes(); };
+$('bShare').onclick = async () => {
+  const v = viewSession(); if (!v || !v.laps.length){ $('sMsg').textContent = 'No hay vueltas para compartir.'; return; }
+  const shared = await shareFile('kart-' + fileStamp(v) + '.json', JSON.stringify(v), 'application/json');
+  $('sMsg').textContent = shared ? 'Listo.' : 'Se descargó el archivo. Pásalo a la Mac con AirDrop.';
+};
+$('bCsv').onclick = async () => {
+  const v = viewSession(); if (!v || !v.laps.length){ $('sMsg').textContent = 'No hay vueltas para exportar.'; return; }
+  await shareFile('kart-' + fileStamp(v) + '.csv', csvOf(v), 'text/csv');
+};
+$('fileIn').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = () => { $('sMsg').textContent = importData(String(r.result)); $('fileIn').value = ''; };
+  r.readAsText(f);
+};
+let delArmed = false;
+$('bDel').onclick = () => {
+  const v = viewSession(); if (!v) return;
+  if (!delArmed){ delArmed = true; $('bDel').textContent = 'Toca otra vez para borrar'; setTimeout(() => { delArmed = false; $('bDel').textContent = 'Borrar esta sesión'; }, 3000); return; }
+  delArmed = false; $('bDel').textContent = 'Borrar esta sesión';
+  S.sessions = S.sessions.filter(s => s.id !== v.id);
+  if (!S.sessions.length) newSession();
+  S.cur = S.sessions[S.sessions.length - 1]; S.viewId = S.cur.id; S.lapStart = null;
+  save(); renderSes(); renderPista();
+};
+['minLap','half','voice'].forEach(id => $(id).addEventListener('change', save));
+
+load(); S.viewId = S.cur.id; renderPista(); renderSes(); requestAnimationFrame(tick);
+</script>
+</body>
+</html>
